@@ -136,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
                 now.get(Calendar.MONTH),
                 now.get(Calendar.DAY_OF_MONTH));
         dpd.show(getFragmentManager(), null);
+        System.out.println("1");
     }
 
     public void timeselect(View v){
