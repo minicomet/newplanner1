@@ -5,9 +5,13 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
 
+import android.app.AlarmManager;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.RadioButton;
@@ -20,85 +24,42 @@ import com.borax12.materialdaterangepicker.date.DatePickerDialog;
 import com.borax12.materialdaterangepicker.time.RadialPickerLayout;
 import com.borax12.materialdaterangepicker.time.TimePickerDialog;
 import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.DayViewFacade;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
 import com.prolificinteractive.materialcalendarview.OnRangeSelectedListener;
 import com.prolificinteractive.materialcalendarview.format.DateFormatDayFormatter;
+import com.prolificinteractive.materialcalendarview.format.DateFormatTitleFormatter;
+import com.prolificinteractive.materialcalendarview.format.TitleFormatter;
 
 import java.text.DateFormat;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener, TimePickerDialog.OnTimeSetListener {
 
-    int hour, minute;
+    int flag=0;
+    int year, month, day;
+    CalendarDay selectedday;
+    Bundle bundle;
+    MaterialCalendarView materialCalendarView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        System.out.println("create");
         setContentView(R.layout.activity_main);
 
-        MaterialCalendarView materialCalendarView = (MaterialCalendarView)findViewById(R.id.view);
+
+
+        materialCalendarView = (MaterialCalendarView)findViewById(R.id.view);
 
         materialCalendarView.addDecorators(
                 new SundayDecorator(),
                 new SaturdayDecorator(),
                 new oneDayDecorator());
-        materialCalendarView.setOnDateChangedListener(new OnDateSelectedListener() {
-            @Override
-            public void onDateSelected(@NonNull MaterialCalendarView widget, @NonNull CalendarDay date, boolean selected) {
-                AlertDialog.Builder plans = new AlertDialog.Builder(MainActivity.this);
-
-
-                plans.setTitle(date.getMonth()+"월 "+date.getDay()+"일");
-                LayoutInflater inflater = (LayoutInflater)getSystemService(LAYOUT_INFLATER_SERVICE);
-                View view = inflater.inflate(R.layout.plans, null);
-                plans.setView(view);
-
-                plans.setPositiveButton("확인", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                        dialogInterface.dismiss();
-                    }
-                });
-
-                plans.setNegativeButton("추가", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        AlertDialog.Builder sch = new AlertDialog.Builder(MainActivity.this);
-                        sch.setIcon(R.mipmap.ic_launcher);
-                        sch.setTitle("일정 추가");
-                        LayoutInflater inflater =  (LayoutInflater)getSystemService(LAYOUT_INFLATER_SERVICE);
-                        View view = inflater.inflate(R.layout.add_schedule_dialog, null);
-                        sch.setView(view);
-
-
-                        sch.setNeutralButton("확인", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                AlertDialog.Builder addPlan = new AlertDialog.Builder(MainActivity.this);
-
-
-                            }
-                        });
-
-                        sch.setNegativeButton("취소", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                dialogInterface.dismiss();
-                            }
-                        });
-
-                        sch.show();
-                    }
-
-                });
-
-                plans.show();
-            }
-        });
 
         RadioGroup plantype = (RadioGroup)findViewById(R.id.plantype);
 
@@ -107,42 +68,68 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
     }
 
-    public void editdate(View v){
-        AlertDialog.Builder date = new AlertDialog.Builder(MainActivity.this);
-        date.setIcon(R.mipmap.ic_launcher);
-        LayoutInflater inflater =  (LayoutInflater)getSystemService(LAYOUT_INFLATER_SERVICE);
-        View view = inflater.inflate(R.layout.calendar, null);
-        date.setView(view);
-        date.setNeutralButton("확인", new DialogInterface.OnClickListener() {
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        System.out.println("start");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        System.out.println("resume");
+
+        materialCalendarView.setOnDateChangedListener(new OnDateSelectedListener() {
             @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-
-
+            public void onDateSelected(@NonNull final MaterialCalendarView widget, @NonNull final CalendarDay date, boolean selected) {
+                /*bundle.putIntArray("date", date.);*/
+                selectedday=date;
+                ondateselected(widget, date, selected);
             }
         });
 
-        date.setNegativeButton("취소", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-            }
-        });
-        date.show();
     }
 
-    public void dateselect(View v){
-        Calendar now = Calendar.getInstance();
-        DatePickerDialog dpd = DatePickerDialog.newInstance(MainActivity.this, now.get(Calendar.YEAR),
-                now.get(Calendar.MONTH),
-                now.get(Calendar.DAY_OF_MONTH));
-        dpd.show(getFragmentManager(), null);
-
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        if(savedInstanceState!=null){
+            System.out.println("loaded");
+            selectedday = savedInstanceState.getParcelable("selectedday");
+            ondateselected(materialCalendarView, selectedday,true);
+        }
     }
 
-    public void timeselect(View v){
-        Calendar now = Calendar.getInstance();
-        TimePickerDialog tpd = TimePickerDialog.newInstance(MainActivity.this, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), false);
-        tpd.show(getFragmentManager(), null);
+    @Override
+    protected void onPause() {
+        super.onPause();
+        System.out.println("pause");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        System.out.println("stop");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        if(flag==1)
+        {
+            ondateselected(materialCalendarView,selectedday,true);
+            flag=0;
+        }
+        System.out.println("restart");
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putParcelable("selectedday",selectedday);
+        System.out.println("saved");
+        super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -152,6 +139,46 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
     @Override
     public void onTimeSet(RadialPickerLayout view, int hourOfDay, int minute, int hourOfDayEnd, int minuteEnd) {
+
+    }
+
+    public void ondateselected(@NonNull final MaterialCalendarView widget, @NonNull final CalendarDay date, boolean selected){
+        AlertDialog.Builder plans = new AlertDialog.Builder(MainActivity.this);
+        int mon = date.getMonth()+1;
+        plans.setTitle(mon+"월 "+date.getDay()+"일");
+
+
+        LayoutInflater inflater = (LayoutInflater)getSystemService(LAYOUT_INFLATER_SERVICE);
+        View view = inflater.inflate(R.layout.plans, null);
+        plans.setView(view);
+        plans.setPositiveButton("확인", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+                widget.addDecorator(new EventDecorator(Color.CYAN, date));
+
+                dialogInterface.dismiss();
+            }
+        });
+
+        plans.setNegativeButton("추가", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+                Intent intent = new Intent(getApplicationContext(), add_schedule_dialog.class);
+                int year = date.getYear();
+                int month = date.getMonth() +1;
+                int day = date.getDay();
+                intent.putExtra("year", year);
+                intent.putExtra("month", month);
+                intent.putExtra("day", day);
+                startActivity(intent);
+                flag=1;
+            }
+
+        });
+
+        plans.show();
 
     }
 }

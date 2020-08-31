@@ -16,6 +16,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".add_schedule_dialog">
+
+        </activity>
+
+        <receiver android:name=".BroadcastD" />
     </application>
 
 </manifest>
